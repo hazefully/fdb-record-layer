@@ -318,7 +318,7 @@ public abstract class RelOpValue extends AbstractValue implements BooleanValue {
      * Whether the given operand type is permitted in a relational operator.
      */
     private static boolean isSupportedOperandType(final Type type) {
-        return type.isPrimitive() || type.isEnum() || type.isUuid() || type.isArray() || type.isNone();
+        return type.isPrimitive() || type.isEnum() || type.isUuid() || type.isArray() || type.isNone() || type.isRecord();
     }
 
     @Nonnull
@@ -354,7 +354,8 @@ public abstract class RelOpValue extends AbstractValue implements BooleanValue {
             // if possible (or if not, this throws a `SemanticException`). This way the usual ARRAY predicates (e.g.,
             // EQ_ARRAY_ARRAY) are used, and we don’t have to define special overloads for ARRAY+NULL/NONE combinations.
             final boolean isArrayComparison = res0.isArray() || res1.isArray();
-            if (isArrayComparison && (res0.isNone() || res1.isNone() || res0.isNull() || res1.isNull())) {
+            final boolean isRecordComparison = res0.isRecord() || res1.isRecord();
+            if (isArrayComparison && (res0.isNone() || res1.isNone() || res0.isNull() || res1.isNull()) || isRecordComparison) {
                 final NonnullPair<Value, Value> promotedOperands = promoteOperands(arg0, arg1);
                 arg0 = promotedOperands.getLeft();
                 res0 = arg0.getResultType();
@@ -364,7 +365,7 @@ public abstract class RelOpValue extends AbstractValue implements BooleanValue {
 
             // We currently require the ARRAY types to match (modulo nullability). For example, comparing an INTEGER
             // ARRAY to a BIGINT ARRAY is not allowed, even though INTEGER can be promoted to BIGINT in principle.
-            if (isArrayComparison) {
+            if (isArrayComparison || isRecordComparison) {
                 SemanticException.check(res0.withNullability(false).equals(res1.withNullability(false)),
                         SemanticException.ErrorCode.COMPARISON_OF_INCOMPATIBLE_TYPES);
             }
@@ -1150,6 +1151,9 @@ public abstract class RelOpValue extends AbstractValue implements BooleanValue {
         NEQ_ARRAY_ARRAY(Comparisons.Type.NOT_EQUALS, Type.TypeCode.ARRAY, Type.TypeCode.ARRAY, (l, r) -> Comparisons.evalComparison(Comparisons.Type.NOT_EQUALS, l, r)),
         IS_DISTINCT_FROM_ARRAY_ARRAY(Comparisons.Type.IS_DISTINCT_FROM, Type.TypeCode.ARRAY, Type.TypeCode.ARRAY, (l, r) -> Comparisons.evalComparison(Comparisons.Type.IS_DISTINCT_FROM, l, r)),
         NOT_DISTINCT_FROM_ARRAY_ARRAY(Comparisons.Type.NOT_DISTINCT_FROM, Type.TypeCode.ARRAY, Type.TypeCode.ARRAY, (l, r) -> Comparisons.evalComparison(Comparisons.Type.NOT_DISTINCT_FROM, l, r)),
+
+        EQ_RECORD_RECORD(Comparisons.Type.EQUALS, Type.TypeCode.RECORD, Type.TypeCode.RECORD, (l, r) -> Comparisons.evalComparison(Comparisons.Type.EQUALS, l, r)),
+        NEQ_RECORD_RECORD(Comparisons.Type.NOT_EQUALS, Type.TypeCode.RECORD, Type.TypeCode.RECORD, (l, r) -> Comparisons.evalComparison(Comparisons.Type.NOT_EQUALS, l, r)),
 
         // NULL/NONE combinations. [] (NONE) evaluates to ImmutableList.of() at runtime; NULL evaluates to null.
         // For operators where one side is NULL type, the null arg is caught by the eval() null check above, so

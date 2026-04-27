@@ -368,6 +368,12 @@ public class YamlIntegrationTests {
     }
 
     @TestTemplate
+    @MaintainYamlTestConfig(YamlTestConfigFilters.)
+    public void structTypeCasting(YamlTest.Runner runner) throws Exception {
+        runner.runYamsql("struct-type-casting.yamsql");
+    }
+
+    @TestTemplate
     public void subqueryTests(YamlTest.Runner runner) throws Exception {
         runner.runYamsql("subquery-tests.yamsql");
     }

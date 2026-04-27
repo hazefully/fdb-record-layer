@@ -637,6 +637,15 @@ public interface Type extends Narrowable<Type>, PlanSerializable {
 
         switch (t1.getTypeCode()) {
             case RECORD:
+                final var t1Record = (Type.Record)t1;
+                final var t2Record = (Type.Record)t2;
+
+                // Only do type coercion for anonymous records
+                if (t1Record.getStorageName() != null && t2Record.getStorageName() != null
+                        && !t1Record.getStorageName().equals(t2Record.getStorageName())) {
+                    return null;
+                }
+
                 final var t1Fields = ((Type.Record)t1).getFields();
                 final var t2Fields = ((Type.Record)t2).getFields();
 
@@ -2214,6 +2223,14 @@ public interface Type extends Narrowable<Type>, PlanSerializable {
             if (isNullable == newIsNullable) {
                 return this;
             }
+
+//            final List<Field> adjustedFields;
+//            if (fields == null) {
+//                adjustedFields = null;
+//            } else {
+//                adjustedFields = fields.stream().map(f -> f.withNullability(newIsNullable)).collect(Collectors.toList());
+//            }
+
             return new Record(name, storageName, newIsNullable, fields);
         }
 
